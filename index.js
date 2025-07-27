@@ -12,50 +12,58 @@ function divide(a, b) {
 }
 
 function operate(a, operator, b) {
+  let result;
+
   if (operator === "+") {
-    return add(a, b);
+    result = add(a, b);
   } else if (operator === "-") {
-    return subtract(a, b);
+    result = subtract(a, b);
   } else if (operator === "*") {
-    return multiply(a, b);
+    result = multiply(a, b);
   } else if (operator === "/") {
-    return divide(a, b);
+    if (b === 0) return "Can't divide by 0!";
+    result = divide(a, b);
   } else {
     alert("Please use +, -, /, or *");
     return null;
   }
+
+  // Round result to avoid long decimals
+  return Math.round(result * 100000) / 100000;
 }
 
+// DOM references
 const display = document.getElementById("display");
 const buttons = document.querySelectorAll("#buttons-container button");
 
+// State variables
 let firstNum = null;
 let operator = null;
 let secondNum = null;
 let waitingForSecondNum = false;
 let currentInput = "";
 
+// Button handler
 buttons.forEach((button) => {
   button.addEventListener("click", () => {
     const btnValue = button.textContent;
 
-    // Clear button resets everything
+    // Clear button
     if (btnValue === "Clear") {
       firstNum = null;
       operator = null;
       secondNum = null;
       waitingForSecondNum = false;
       currentInput = "";
-      display.textContent = "";
+      display.textContent = "0";
       return;
     }
 
-    // Digit or decimal point input
+    // Number or decimal
     if ((btnValue >= "0" && btnValue <= "9") || btnValue === ".") {
-      // Prevent multiple decimals in the current number
       if (btnValue === "." && currentInput.includes(".")) return;
 
-      // If result was just shown and no operator set, start fresh input
+      // Reset after a result if starting a new input
       if (!waitingForSecondNum && firstNum !== null && operator === null) {
         currentInput = btnValue;
         firstNum = null;
@@ -68,37 +76,37 @@ buttons.forEach((button) => {
       return;
     }
 
-    // Operator button (+, -, *, /)
+    // Operator
     if (["+", "-", "*", "/"].includes(btnValue)) {
-      // Change operator if operator is already set and waiting for second number
-      if (operator && waitingForSecondNum) {
-        operator = btnValue;
-        return;
-      }
-
-      if (firstNum === null) {
-        firstNum = parseFloat(currentInput);
-      } else if (!waitingForSecondNum) {
+      if (operator && currentInput !== "") {
         secondNum = parseFloat(currentInput);
         if (!isNaN(secondNum)) {
           const result = operate(firstNum, operator, secondNum);
+          if (result === "Can't divide by 0!") {
+            display.textContent = result;
+            firstNum = null;
+            operator = null;
+            currentInput = "";
+            waitingForSecondNum = false;
+            return;
+          }
+
           firstNum = result;
           display.textContent = String(result);
         }
+      } else if (firstNum === null && currentInput !== "") {
+        firstNum = parseFloat(currentInput);
       }
 
       operator = btnValue;
-      waitingForSecondNum = true;
       currentInput = "";
+      waitingForSecondNum = true;
       return;
     }
 
-    // Equals button
+    // Equals
     if (btnValue === "=") {
-      if (operator === null || currentInput === "") {
-        // Nothing to compute
-        return;
-      }
+      if (operator === null || currentInput === "") return;
 
       secondNum = parseFloat(currentInput);
       if (isNaN(secondNum)) return;
@@ -106,13 +114,11 @@ buttons.forEach((button) => {
       const result = operate(firstNum, operator, secondNum);
       display.textContent = String(result);
 
-      // Reset state for next calculation
       firstNum = result;
       operator = null;
-      waitingForSecondNum = false;
-      currentInput = "";
       secondNum = null;
-      return;
+      currentInput = "";
+      waitingForSecondNum = false;
     }
   });
 });
