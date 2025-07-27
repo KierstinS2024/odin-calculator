@@ -1,5 +1,3 @@
-// index.js
-
 // ----- Math Functions -----
 function add(a, b) {
   return a + b;
@@ -11,14 +9,18 @@ function multiply(a, b) {
   return a * b;
 }
 function divide(a, b) {
-  return b === 0 ? "Really? Dividing by zero? Nope!" : a / b;
+  return a / b;
 }
 
 function operate(a, operator, b) {
   a = Number(a);
   b = Number(b);
-  let result;
 
+  if (operator === "/" && b === 0) {
+    return "Really? Dividing by zero? Nope!";
+  }
+
+  let result;
   switch (operator) {
     case "+":
       result = add(a, b);
@@ -36,6 +38,7 @@ function operate(a, operator, b) {
       return "Invalid operator";
   }
 
+  // Round float to 5 decimal places if needed
   if (typeof result === "number" && !Number.isInteger(result)) {
     result = parseFloat(result.toFixed(5));
   }
@@ -68,8 +71,37 @@ function clearCalculator() {
   currentInput = "";
   waitingForSecondNum = false;
   lastResultDisplayed = false;
-  display.textContent = "0";
+  updateDisplay("0");
   updateDecimalButton();
+}
+
+function resetInternalState() {
+  firstNum = null;
+  operator = null;
+  secondNum = null;
+  currentInput = "";
+  waitingForSecondNum = false;
+  lastResultDisplayed = false;
+  updateDecimalButton();
+}
+
+function formatResult(result) {
+  if (typeof result === "number") {
+    if (!Number.isFinite(result)) return "Error";
+
+    // Use scientific notation if too large
+    if (Math.abs(result) >= 1e12) {
+      return result.toExponential(5);
+    }
+
+    return result.toString();
+  }
+
+  return result; // for strings like error messages
+}
+
+function updateDisplay(value) {
+  display.textContent = formatResult(value);
 }
 
 function inputDigit(digit) {
@@ -81,13 +113,13 @@ function inputDigit(digit) {
     if (digit === "." && currentInput.includes(".")) return;
     currentInput += digit;
   }
-  display.textContent = currentInput;
+  updateDisplay(currentInput);
   updateDecimalButton();
 }
 
 function inputOperator(op) {
   if (operator && currentInput === "") {
-    operator = op;
+    operator = op; // allow operator change mid-input
     return;
   }
 
@@ -101,12 +133,13 @@ function inputOperator(op) {
 
     const result = operate(firstNum, operator, secondNum);
     if (typeof result === "string") {
-      display.textContent = result;
-      clearCalculator();
+      updateDisplay(result);
+      resetInternalState(); // keep display
       return;
     }
+
     firstNum = result;
-    display.textContent = result;
+    updateDisplay(result);
   }
 
   operator = op;
@@ -118,24 +151,24 @@ function inputOperator(op) {
 
 function inputEquals() {
   if (firstNum === null || operator === null || currentInput === "") {
-    display.textContent = "Incomplete!";
+    updateDisplay("Incomplete!");
     return;
   }
 
   secondNum = parseFloat(currentInput);
   if (isNaN(secondNum)) {
-    display.textContent = "Invalid input";
+    updateDisplay("Invalid input");
     return;
   }
 
   const result = operate(firstNum, operator, secondNum);
   if (typeof result === "string") {
-    display.textContent = result;
-    clearCalculator();
+    updateDisplay(result);
+    resetInternalState();
     return;
   }
 
-  display.textContent = result;
+  updateDisplay(result);
   firstNum = result;
   operator = null;
   secondNum = null;
@@ -148,7 +181,7 @@ function inputEquals() {
 function inputBackspace() {
   if (currentInput.length > 0) {
     currentInput = currentInput.slice(0, -1);
-    display.textContent = currentInput || "0";
+    updateDisplay(currentInput || "0");
     updateDecimalButton();
   }
 }
@@ -183,7 +216,7 @@ document.addEventListener("keydown", (e) => {
   } else if (["+", "-", "*", "/"].includes(key)) {
     inputOperator(key);
   } else if (key === "Enter" || key === "=") {
-    e.preventDefault();
+    e.preventDefault(); // prevent form submission
     inputEquals();
   } else if (key === "Backspace") {
     inputBackspace();
