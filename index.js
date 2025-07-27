@@ -1,3 +1,6 @@
+// index.js
+
+// ----- Math Functions -----
 function add(a, b) {
   return a + b;
 }
@@ -8,10 +11,12 @@ function multiply(a, b) {
   return a * b;
 }
 function divide(a, b) {
-  return a / b;
+  return b === 0 ? "Really? Dividing by zero? Nope!" : a / b;
 }
 
 function operate(a, operator, b) {
+  a = Number(a);
+  b = Number(b);
   let result;
 
   switch (operator) {
@@ -25,110 +30,164 @@ function operate(a, operator, b) {
       result = multiply(a, b);
       break;
     case "/":
-      if (b === 0) return "Can't divide by 0!";
       result = divide(a, b);
       break;
     default:
-      alert("Invalid operator");
-      return null;
+      return "Invalid operator";
   }
 
-  // Round only if result is a float
-  if (!Number.isInteger(result)) {
-    result = parseFloat(result.toFixed(5)); // Limits to 5 decimal places
+  if (typeof result === "number" && !Number.isInteger(result)) {
+    result = parseFloat(result.toFixed(5));
   }
 
   return result;
 }
 
-
-// DOM references
+// ----- DOM Elements -----
 const display = document.getElementById("display");
 const buttons = document.querySelectorAll("#buttons-container button");
+const decimalBtn = document.getElementById("decimal-btn");
 
-// State variables
+// ----- Calculator State -----
 let firstNum = null;
 let operator = null;
 let secondNum = null;
-let waitingForSecondNum = false;
 let currentInput = "";
+let waitingForSecondNum = false;
+let lastResultDisplayed = false;
 
-// Button handler
+// ----- Helper Functions -----
+function updateDecimalButton() {
+  decimalBtn.disabled = currentInput.includes(".");
+}
+
+function clearCalculator() {
+  firstNum = null;
+  operator = null;
+  secondNum = null;
+  currentInput = "";
+  waitingForSecondNum = false;
+  lastResultDisplayed = false;
+  display.textContent = "0";
+  updateDecimalButton();
+}
+
+function inputDigit(digit) {
+  if (lastResultDisplayed && !waitingForSecondNum) {
+    currentInput = digit === "." ? "0." : digit;
+    firstNum = null;
+    lastResultDisplayed = false;
+  } else {
+    if (digit === "." && currentInput.includes(".")) return;
+    currentInput += digit;
+  }
+  display.textContent = currentInput;
+  updateDecimalButton();
+}
+
+function inputOperator(op) {
+  if (operator && currentInput === "") {
+    operator = op;
+    return;
+  }
+
+  if (currentInput === "") return;
+
+  if (firstNum === null) {
+    firstNum = parseFloat(currentInput);
+  } else {
+    secondNum = parseFloat(currentInput);
+    if (isNaN(secondNum)) return;
+
+    const result = operate(firstNum, operator, secondNum);
+    if (typeof result === "string") {
+      display.textContent = result;
+      clearCalculator();
+      return;
+    }
+    firstNum = result;
+    display.textContent = result;
+  }
+
+  operator = op;
+  currentInput = "";
+  waitingForSecondNum = true;
+  lastResultDisplayed = false;
+  updateDecimalButton();
+}
+
+function inputEquals() {
+  if (firstNum === null || operator === null || currentInput === "") {
+    display.textContent = "Incomplete!";
+    return;
+  }
+
+  secondNum = parseFloat(currentInput);
+  if (isNaN(secondNum)) {
+    display.textContent = "Invalid input";
+    return;
+  }
+
+  const result = operate(firstNum, operator, secondNum);
+  if (typeof result === "string") {
+    display.textContent = result;
+    clearCalculator();
+    return;
+  }
+
+  display.textContent = result;
+  firstNum = result;
+  operator = null;
+  secondNum = null;
+  currentInput = "";
+  waitingForSecondNum = false;
+  lastResultDisplayed = true;
+  updateDecimalButton();
+}
+
+function inputBackspace() {
+  if (currentInput.length > 0) {
+    currentInput = currentInput.slice(0, -1);
+    display.textContent = currentInput || "0";
+    updateDecimalButton();
+  }
+}
+
+// ----- Button Clicks -----
 buttons.forEach((button) => {
   button.addEventListener("click", () => {
-    const btnValue = button.textContent;
+    const value = button.textContent;
 
-    // Clear button
-    if (btnValue === "Clear") {
-      firstNum = null;
-      operator = null;
-      secondNum = null;
-      waitingForSecondNum = false;
-      currentInput = "";
-      display.textContent = "0";
-      return;
-    }
-
-    // Number or decimal
-    if ((btnValue >= "0" && btnValue <= "9") || btnValue === ".") {
-      if (btnValue === "." && currentInput.includes(".")) return;
-
-      // Reset after a result if starting a new input
-      if (!waitingForSecondNum && firstNum !== null && operator === null) {
-        currentInput = btnValue;
-        firstNum = null;
-        display.textContent = currentInput;
-        return;
-      }
-
-      currentInput += btnValue;
-      display.textContent = currentInput;
-      return;
-    }
-
-    // Operator
-    if (["+", "-", "*", "/"].includes(btnValue)) {
-      if (operator && currentInput !== "") {
-        secondNum = parseFloat(currentInput);
-        if (!isNaN(secondNum)) {
-          const result = operate(firstNum, operator, secondNum);
-          if (result === "Can't divide by 0!") {
-            display.textContent = result;
-            firstNum = null;
-            operator = null;
-            currentInput = "";
-            waitingForSecondNum = false;
-            return;
-          }
-
-          firstNum = result;
-          display.textContent = String(result);
-        }
-      } else if (firstNum === null && currentInput !== "") {
-        firstNum = parseFloat(currentInput);
-      }
-
-      operator = btnValue;
-      currentInput = "";
-      waitingForSecondNum = true;
-      return;
-    }
-
-    // Equals
-    if (btnValue === "=") {
-      if (operator === null || currentInput === "") return;
-
-      secondNum = parseFloat(currentInput);
-      if (isNaN(secondNum)) return;
-
-      const result = operate(firstNum, operator, secondNum);
-      display.textContent = String(result);
-
-      firstNum = result;
-      operator = null;
-      secondNum = null;
-      currentInput = "";
-      waitingForSecondNum = false;
+    if (value === "Clear") {
+      clearCalculator();
+    } else if (value === "Backspace") {
+      inputBackspace();
+    } else if (["+", "-", "*", "/"].includes(value)) {
+      inputOperator(value);
+    } else if (value === "=") {
+      inputEquals();
+    } else if ((value >= "0" && value <= "9") || value === ".") {
+      inputDigit(value);
     }
   });
+});
+
+// ----- Keyboard Support -----
+document.addEventListener("keydown", (e) => {
+  const key = e.key;
+
+  if (key >= "0" && key <= "9") {
+    inputDigit(key);
+  } else if (key === ".") {
+    inputDigit(key);
+  } else if (["+", "-", "*", "/"].includes(key)) {
+    inputOperator(key);
+  } else if (key === "Enter" || key === "=") {
+    e.preventDefault();
+    inputEquals();
+  } else if (key === "Backspace") {
+    inputBackspace();
+  } else if (key.toLowerCase() === "c") {
+    clearCalculator();
+  }
 });
