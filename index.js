@@ -14,23 +14,33 @@ function divide(a, b) {
 function operate(a, operator, b) {
   let result;
 
-  if (operator === "+") {
-    result = add(a, b);
-  } else if (operator === "-") {
-    result = subtract(a, b);
-  } else if (operator === "*") {
-    result = multiply(a, b);
-  } else if (operator === "/") {
-    if (b === 0) return "Can't divide by 0!";
-    result = divide(a, b);
-  } else {
-    alert("Please use +, -, /, or *");
-    return null;
+  switch (operator) {
+    case "+":
+      result = add(a, b);
+      break;
+    case "-":
+      result = subtract(a, b);
+      break;
+    case "*":
+      result = multiply(a, b);
+      break;
+    case "/":
+      if (b === 0) return "Can't divide by 0!";
+      result = divide(a, b);
+      break;
+    default:
+      alert("Invalid operator");
+      return null;
   }
 
-  // Round result to avoid long decimals
-  return Math.round(result * 100000) / 100000;
+  // Round only if result is a float
+  if (!Number.isInteger(result)) {
+    result = parseFloat(result.toFixed(5)); // Limits to 5 decimal places
+  }
+
+  return result;
 }
+
 
 // DOM references
 const display = document.getElementById("display");
